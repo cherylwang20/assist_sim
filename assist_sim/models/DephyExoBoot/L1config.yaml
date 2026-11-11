@@ -80,6 +80,16 @@ actuators:
 # also sits inside the torso collision geoms, five spine joints from the pelvis.
 # Unexcluded, these start interpenetrated by up to 8 cm and push apart at up to
 # ~31 kN.  myolegs22 and myolegs26 have none of these overlaps.
+#
+# --- Boot part <-> boot part excludes (freejoint lineages only) ---
+# The shank-side parts (exo_1, tb_shank on tibia) and the foot-side parts (exo_2,
+# tb_mid on calcn) are the two halves of one boot and overlap by design: tb_shank
+# sits ~53 mm inside tb_mid and exo_1 ~20 mm inside exo_2 at the stand pose.  On
+# myolegs22/26 calcn has no joint of its own, so it welds to talus and MuJoCo's
+# parent filter already skips tibia-side vs calcn-side bodies.  The subtalar joint
+# on myolegs/myofullbody breaks that weld, and the two halves then press against
+# each other through the whole stride and apply a spurious ankle moment.  tb_toe
+# (on toes) never reaches the shank parts and needs no exclude.
 contact:
   excludes:
     default: []
@@ -88,11 +98,27 @@ contact:
       - &exc_shank_l ["tb_shank_l", "calcn_l"]
       - &exc_mid_r ["tb_mid_r", "tibia_r"]
       - &exc_mid_l ["tb_mid_l", "tibia_l"]
+      - &exc_parts_shank_mid_r ["tb_shank_r", "tb_mid_r"]
+      - &exc_parts_shank_exo2_r ["tb_shank_r", "exo_2_r"]
+      - &exc_parts_exo1_mid_r ["exo_1_r", "tb_mid_r"]
+      - &exc_parts_exo1_exo2_r ["exo_1_r", "exo_2_r"]
+      - &exc_parts_shank_mid_l ["tb_shank_l", "tb_mid_l"]
+      - &exc_parts_shank_exo2_l ["tb_shank_l", "exo_2_l"]
+      - &exc_parts_exo1_mid_l ["exo_1_l", "tb_mid_l"]
+      - &exc_parts_exo1_exo2_l ["exo_1_l", "exo_2_l"]
     myofullbody:
       - *exc_shank_r
       - *exc_shank_l
       - *exc_mid_r
       - *exc_mid_l
+      - *exc_parts_shank_mid_r
+      - *exc_parts_shank_exo2_r
+      - *exc_parts_exo1_mid_r
+      - *exc_parts_exo1_exo2_r
+      - *exc_parts_shank_mid_l
+      - *exc_parts_shank_exo2_l
+      - *exc_parts_exo1_mid_l
+      - *exc_parts_exo1_exo2_l
       - ["fanny_pack", "torso"]
       - ["battery_l", "torso"]
       - ["battery_r", "torso"]

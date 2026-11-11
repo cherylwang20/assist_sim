@@ -55,3 +55,44 @@ def test_no_device_human_overlap_at_stand(keys):
         f"{msk_key} x {device_key}: device geoms start inside human colliders (mm): {too_deep}. "
         "Add the pairs to the device config's contact.excludes for this MSK."
     )
+
+
+# The two halves of the Dephy boot: shank side on tibia, foot side on calcn.  tb_toe
+# (on toes) is left out because it never reaches the shank side.
+DEPHY_SHANK_PARTS = ("exo_1", "tb_shank")
+DEPHY_FOOT_PARTS = ("exo_2", "tb_mid")
+
+
+@needs_myo_sim
+@pytest.mark.parametrize("msk_key", sorted({msk for msk, device in EXPECTED if device == "DephyExoBoot_L1"}))
+def test_dephy_boot_halves_do_not_collide(msk_key):
+    """The boot's shank and foot halves overlap by design and must never generate contacts.
+
+    On the subtalar lineages calcn is not welded to talus, so MuJoCo's parent filter
+    does not cover tibia-side vs calcn-side bodies.  Sweeps the ankle through the
+    boot's range [rad] because the overlap depth changes with ankle angle.
+    """
+    device_key = "DephyExoBoot_L1"
+    model, data = load_combined(msk_key, device_key)
+    halves = {}
+    for side in "rl":
+        for name in DEPHY_SHANK_PARTS:
+            halves[model.body(f"{device_key}_{name}_{side}").id] = ("shank", side)
+        for name in DEPHY_FOOT_PARTS:
+            halves[model.body(f"{device_key}_{name}_{side}").id] = ("foot", side)
+
+    colliding = set()
+    for side in "rl":
+        joint = model.joint(f"ankle_angle_{side}")
+        low, high = model.jnt_range[joint.id]
+        for angle in (low, 0.0, high):
+            mj.mj_resetDataKeyframe(model, data, model.key("stand").id)
+            data.qpos[model.jnt_qposadr[joint.id]] = angle
+            mj.mj_forward(model, data)
+            for i in range(data.ncon):
+                b1, b2 = (int(model.geom_bodyid[g]) for g in data.contact[i].geom)
+                h1, h2 = halves.get(b1), halves.get(b2)
+                # Same leg, opposite halves.  Left-right contact is a real collision.
+                if h1 and h2 and h1[1] == h2[1] and h1[0] != h2[0]:
+                    colliding.add(tuple(sorted((model.body(b1).name, model.body(b2).name))))
+    assert not colliding, f"{msk_key}: Dephy boot halves collide: {sorted(colliding)}"

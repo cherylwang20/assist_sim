@@ -18,12 +18,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   torso), `Humotech_L1`, `Anatomics_L1`, `OpenExo_L1` (shoe and exo parts vs calcn/tibia),
   `HMEDI_L1` (waistband and femur flaps vs torso) and `Hippo_L1` (waist parts vs torso, and
   every Hippo body vs the arm and hand bodies, which hang through the hip shells).
+- **The Dephy ExoBoot's shank and foot halves no longer collide on `myolegs` / `myofullbody`.**
+  The subtalar joint on these lineages keeps calcn from welding to talus, so MuJoCo's parent
+  filter does not cover `exo_1` / `tb_shank` (tibia) vs `exo_2` / `tb_mid` (calcn). The halves
+  started 20-53 mm inside each other and pressed together through the whole stride, applying a
+  spurious ankle moment. Added the eight same-leg pairs to `DephyExoBoot_L1` `contact.excludes`
+  for both lineages. `myolegs22` / `myolegs26` were already unaffected.
 
 ### Added
 
 - **`tests/test_device_contact_overlap.py`**: asserts no device geom starts more than 2 mm
   inside a human collider at the `stand` pose, for every MSK x device combination. It fails on
   the ten combinations above without the excludes.
+- **`test_dephy_boot_halves_do_not_collide`**: sweeps each ankle through the boot's range and
+  asserts no contact between the boot's same-leg shank and foot halves, on every MSK the boot
+  combines with.
 
 ## [1.0.0] — First stable release
 
